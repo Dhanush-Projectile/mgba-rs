@@ -8,3 +8,10 @@
 #include <mgba/internal/gba/input.h>
 #include <mgba-util/vfs.h>
 #include <mgba-util/audio-buffer.h>
+
+void wrapper_mCoreInit(struct mCore* core);
+void wrapper_mCoreDeinit(struct mCore* core);
+void wrapper_mCoreReset(struct mCore* core);
+void wrapper_mCoreRunFrame(struct mCore* core);
+void wrapper_mCoreSetVideoBuffer(struct mCore* core, mColor* buffer, size_t stride);
+void wrapper_mCoreSetKeys(struct mCore* core, uint32_t keys);

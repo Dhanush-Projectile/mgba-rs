@@ -1,11 +1,34 @@
 use std::env;
+use std::fs;
 use std::path::PathBuf;
 
 fn main() {
     let mgba_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("mgba");
 
-    // Rerun if the wrapper header or mgba source changes
+    // Fix: Automatically create missing resource/icon files expected by mGBA's 
+    // CMake installation script, preventing the "file INSTALL cannot find" error.
+    let res_dir = mgba_dir.join("res");
+    let _ = fs::create_dir_all(&res_dir);
+    for icon_file in &[
+        "mgba-16.png",
+        "mgba-24.png",
+        "mgba-32.png",
+        "mgba-48.png",
+        "mgba-64.png",
+        "mgba-96.png",
+        "mgba-128.png",
+        "mgba-256.png",
+        "mgba-512.png",
+    ] {
+        let file_path = res_dir.join(icon_file);
+        if !file_path.exists() {
+            let _ = fs::write(&file_path, b"");
+        }
+    }
+
+    // Rerun if the wrapper source or mgba source changes
     println!("cargo:rerun-if-changed=wrapper.h");
+    println!("cargo:rerun-if-changed=wrapper.c");
     println!("cargo:rerun-if-changed=mgba");
 
     // Check that cmake is available
@@ -52,12 +75,28 @@ fn main() {
         .define("USE_ZLIB", "ON")
         .build();
 
+    // Include directories for headers
+    let include_dir = mgba_dir.join("include");
+    let generated_include_dir = dst.join("include");
+
     // Link the static library
     println!(
-        "cargo:rustc-link-search=native={}/lib",
+        "cargo:rustc-link-search=native={}/build",
         dst.display()
     );
     println!("cargo:rustc-link-lib=static=mgba");
+
+    // Compile wrapper.c and link it
+    cc::Build::new()
+        .file("wrapper.c")
+        .include(&include_dir)
+        .include(&generated_include_dir)
+        .define("ENABLE_VFS", None)
+        .define("ENABLE_VFS_FD", None)
+        .define("ENABLE_DIRECTORIES", None)
+        .define("M_CORE_GBA", None)
+        .define("USE_ZLIB", None)
+        .compile("mgba_wrapper");
 
     // Link system libraries needed by mgba
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
@@ -80,9 +119,6 @@ fn main() {
     }
 
     // Generate bindings with bindgen
-    let include_dir = mgba_dir.join("include");
-    let generated_include_dir = dst.join("include");
-
     let bindings = bindgen::Builder::default()
         .header("wrapper.h")
         .clang_arg(format!("-I{}", include_dir.display()))
@@ -119,6 +155,13 @@ fn main() {
         .allowlist_function("mCoreConfigDeinit")
         .allowlist_function("mCoreConfigLoadDefaults")
         .allowlist_function("GBACoreCreate")
+        // Wrapper functions for vtable calls
+        .allowlist_function("wrapper_mCoreInit")
+        .allowlist_function("wrapper_mCoreDeinit")
+        .allowlist_function("wrapper_mCoreReset")
+        .allowlist_function("wrapper_mCoreRunFrame")
+        .allowlist_function("wrapper_mCoreSetVideoBuffer")
+        .allowlist_function("wrapper_mCoreSetKeys")
         // Audio buffer functions
         .allowlist_function("mAudioBufferInit")
         .allowlist_function("mAudioBufferDeinit")
