@@ -3,6 +3,7 @@
 Rust bindings to [libmgba](https://mgba.io/), a Game Boy Advance emulator core.
 
 Use this to build GBA emulator frontends, headless ROM testing tools, TAS (tool-assisted speedrun) utilities, or anything else that needs to run GBA software programmatically.
+added support for RHEL distros and fedora .
 
 ## Quick start
 
