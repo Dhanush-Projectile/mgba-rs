@@ -52,10 +52,19 @@ The mgba C library is built from vendored source, so you need a few system depen
 ### Clone and build
 
 ```sh
-git clone https://github.com/ocnc/mgba-rs.git
+git clone https://github.com/Dhanush-Projectile/mgba-rs
 cd mgba-rs
 cargo build
 ```
+
+```Just
+just check
+just build
+
+```
+
+
+
 
 ## License
 
