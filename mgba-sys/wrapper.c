@@ -1,4 +1,5 @@
 #include <mgba/core/core.h>
+#include <mgba-util/vfs.h>
 
 void wrapper_mCoreInit(struct mCore* core) {
     core->init(core);
@@ -38,4 +39,18 @@ uint32_t wrapper_mCoreBusRead16(struct mCore* core, uint32_t address) {
 
 void wrapper_mCoreSetOptionVolume(struct mCore* core, int volume) {
     core->opts.volume = volume;
+}
+
+void wrapper_mCoreSetSaveDirectory(struct mCore* core, const char* dir) {
+    struct VDir* d = VDirOpen(dir);
+    if (!d && VDirCreate(dir)) {
+        d = VDirOpen(dir);
+    }
+    if (!d) {
+        return;
+    }
+    if (core->dirs.save && core->dirs.save != core->dirs.base) {
+        core->dirs.save->close(core->dirs.save);
+    }
+    core->dirs.save = d;
 }

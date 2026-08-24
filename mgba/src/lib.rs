@@ -53,6 +53,19 @@ impl Core {
             if !mgba_sys::mCoreLoadFile(self.raw, c_path.as_ptr()) {
                 return Err(CoreError::RomLoadFailed);
             }
+
+            // Keep battery saves (.sav) next to the ROM file, overriding any
+            // savegamePath from an ambient mGBA config.
+            if let Some(parent) = path
+                .parent()
+                .filter(|p| !p.as_os_str().is_empty())
+                .and_then(|p| p.to_str())
+            {
+                if let Ok(c_dir) = CString::new(parent) {
+                    mgba_sys::wrapper_mCoreSetSaveDirectory(self.raw, c_dir.as_ptr());
+                }
+            }
+
             mgba_sys::mCoreAutoloadSave(self.raw);
         }
 
