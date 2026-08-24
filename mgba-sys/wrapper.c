@@ -23,3 +23,19 @@ void wrapper_mCoreSetVideoBuffer(struct mCore* core, mColor* buffer, size_t stri
 void wrapper_mCoreSetKeys(struct mCore* core, uint32_t keys) {
     core->setKeys(core, keys);
 }
+
+struct mAudioBuffer* wrapper_mCoreGetAudioBuffer(struct mCore* core) {
+    return core->getAudioBuffer(core);
+}
+
+unsigned wrapper_mCoreAudioSampleRate(const struct mCore* core) {
+    return core->audioSampleRate(core);
+}
+
+uint32_t wrapper_mCoreBusRead16(struct mCore* core, uint32_t address) {
+    return core->busRead16(core, address);
+}
+
+void wrapper_mCoreSetOptionVolume(struct mCore* core, int volume) {
+    core->opts.volume = volume;
+}

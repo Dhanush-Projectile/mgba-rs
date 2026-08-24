@@ -15,3 +15,7 @@ void wrapper_mCoreReset(struct mCore* core);
 void wrapper_mCoreRunFrame(struct mCore* core);
 void wrapper_mCoreSetVideoBuffer(struct mCore* core, mColor* buffer, size_t stride);
 void wrapper_mCoreSetKeys(struct mCore* core, uint32_t keys);
+struct mAudioBuffer* wrapper_mCoreGetAudioBuffer(struct mCore* core);
+unsigned wrapper_mCoreAudioSampleRate(const struct mCore* core);
+uint32_t wrapper_mCoreBusRead16(struct mCore* core, uint32_t address);
+void wrapper_mCoreSetOptionVolume(struct mCore* core, int volume);

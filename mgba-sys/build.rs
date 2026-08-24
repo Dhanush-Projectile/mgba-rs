@@ -162,6 +162,10 @@ fn main() {
         .allowlist_function("wrapper_mCoreRunFrame")
         .allowlist_function("wrapper_mCoreSetVideoBuffer")
         .allowlist_function("wrapper_mCoreSetKeys")
+        .allowlist_function("wrapper_mCoreGetAudioBuffer")
+        .allowlist_function("wrapper_mCoreAudioSampleRate")
+        .allowlist_function("wrapper_mCoreBusRead16")
+        .allowlist_function("wrapper_mCoreSetOptionVolume")
         // Audio buffer functions
         .allowlist_function("mAudioBufferInit")
         .allowlist_function("mAudioBufferDeinit")

@@ -4,10 +4,6 @@ use std::ffi::CString;
 use std::marker::PhantomData;
 use std::path::Path;
 
-extern "C" {
-    fn free(ptr: *mut std::ffi::c_void);
-}
-
 pub const GBA_WIDTH: usize = 240;
 pub const GBA_HEIGHT: usize = 160;
 pub const GBA_PIXELS: usize = GBA_WIDTH * GBA_HEIGHT;
@@ -32,6 +28,9 @@ impl Core {
 
             mgba_sys::wrapper_mCoreInit(raw);
             mgba_sys::mCoreInitConfig(raw, std::ptr::null());
+            // GBACoreCreate zeroes opts; without this masterVolume ends up 0
+            // (silence) since no config file provides a volume value.
+            mgba_sys::wrapper_mCoreSetOptionVolume(raw, 0x100);
             mgba_sys::mCoreLoadConfig(raw);
 
             Ok(Core {
@@ -83,14 +82,38 @@ impl Core {
         &self.display_buffer
     }
 
+    pub fn audio_sample_rate(&self) -> u32 {
+        unsafe { mgba_sys::wrapper_mCoreAudioSampleRate(self.raw) }
+    }
+
+    pub fn bus_read16(&mut self, address: u32) -> u16 {
+        unsafe { mgba_sys::wrapper_mCoreBusRead16(self.raw, address) as u16 }
+    }
+
+    /// Drains interleaved stereo i16 samples into `out`, returning how many
+    /// values were written (always a multiple of 2).
+    pub fn read_audio(&mut self, out: &mut [i16]) -> usize {
+        if out.len() < 2 {
+            return 0;
+        }
+        unsafe {
+            let buffer = mgba_sys::wrapper_mCoreGetAudioBuffer(self.raw);
+            if buffer.is_null() {
+                return 0;
+            }
+            let frames = (out.len() / 2) as usize;
+            let read = mgba_sys::mAudioBufferRead(buffer, out.as_mut_ptr(), frames);
+            read * 2
+        }
+    }
 }
 
 impl Drop for Core {
     fn drop(&mut self) {
         unsafe {
             if !self.raw.is_null() {
+                // wrapper_mCoreDeinit -> core->deinit already frees the core.
                 mgba_sys::wrapper_mCoreDeinit(self.raw);
-                free(self.raw as *mut std::ffi::c_void);
             }
         }
     }
