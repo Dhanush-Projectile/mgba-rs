@@ -8,6 +8,46 @@ pub const GBA_WIDTH: usize = 240;
 pub const GBA_HEIGHT: usize = 160;
 pub const GBA_PIXELS: usize = GBA_WIDTH * GBA_HEIGHT;
 
+/// Resamples the emulator's native-rate stereo i16 output to an arbitrary
+/// hardware sample rate, producing f32 samples in the -1.0..=1.0 range.
+pub struct AudioResampler {
+    step: f64,
+    frac: f64,
+    last: [f32; 2],
+}
+
+impl AudioResampler {
+    pub fn new(input_rate: u32, output_rate: u32) -> Self {
+        Self {
+            step: f64::from(input_rate) / f64::from(output_rate),
+            frac: 0.0,
+            last: [0.0, 0.0],
+        }
+    }
+
+    pub fn set_input_rate(&mut self, input_rate: u32, output_rate: u32) {
+        self.step = f64::from(input_rate) / f64::from(output_rate);
+    }
+
+    /// Push a chunk of interleaved stereo i16 samples and call `emit` for
+    /// each resampled f32 output sample (left, right, left, right, ...).
+    pub fn push(&mut self, input: &[i16], mut emit: impl FnMut(f32)) {
+        for [left_in, right_in] in input.as_chunks::<2>().0 {
+            let cur = [*left_in as f32 / 32768.0, *right_in as f32 / 32768.0];
+            while self.frac < 1.0 {
+                let t = self.frac as f32;
+                let left = self.last[0] + (cur[0] - self.last[0]) * t;
+                let right = self.last[1] + (cur[1] - self.last[1]) * t;
+                emit(left.clamp(-1.0, 1.0));
+                emit(right.clamp(-1.0, 1.0));
+                self.frac += self.step;
+            }
+            self.frac -= 1.0;
+            self.last = cur;
+        }
+    }
+}
+
 pub struct Core {
     raw: *mut mgba_sys::mCore,
     video_buffer: Box<[u32; GBA_PIXELS]>,
@@ -101,6 +141,28 @@ impl Core {
 
     pub fn bus_read16(&mut self, address: u32) -> u16 {
         unsafe { mgba_sys::wrapper_mCoreBusRead16(self.raw, address) as u16 }
+    }
+
+    /// Drains all available audio from the emulator, resamples it to
+    /// `output_rate`, and calls `emit` for each f32 stereo sample.
+    ///
+    /// Use an [`AudioResampler`] stored between frames to maintain
+    /// interpolation state.
+    pub fn drain_audio(
+        &mut self,
+        resampler: &mut AudioResampler,
+        output_rate: u32,
+        emit: &mut dyn FnMut(f32),
+    ) {
+        resampler.set_input_rate(self.audio_sample_rate(), output_rate);
+        let mut buf = [0i16; 4096];
+        loop {
+            let n = self.read_audio(&mut buf);
+            if n == 0 {
+                break;
+            }
+            resampler.push(&buf[..n], &mut *emit);
+        }
     }
 
     /// Drains interleaved stereo i16 samples into `out`, returning how many
