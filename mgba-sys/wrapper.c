@@ -39,3 +39,7 @@ uint32_t wrapper_mCoreBusRead16(struct mCore* core, uint32_t address) {
 void wrapper_mCoreSetOptionVolume(struct mCore* core, int volume) {
     core->opts.volume = volume;
 }
+
+bool wrapper_mCoreLoadSave(struct mCore* core, const char* path) {
+    return mCoreLoadSaveFile(core, path, false);
+}

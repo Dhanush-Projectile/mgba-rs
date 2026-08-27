@@ -166,6 +166,7 @@ fn main() {
         .allowlist_function("wrapper_mCoreAudioSampleRate")
         .allowlist_function("wrapper_mCoreBusRead16")
         .allowlist_function("wrapper_mCoreSetOptionVolume")
+        .allowlist_function("wrapper_mCoreLoadSave")
         // Audio buffer functions
         .allowlist_function("mAudioBufferInit")
         .allowlist_function("mAudioBufferDeinit")

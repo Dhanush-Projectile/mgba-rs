@@ -2,7 +2,7 @@
 
 use std::ffi::CString;
 use std::marker::PhantomData;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub const GBA_WIDTH: usize = 240;
 pub const GBA_HEIGHT: usize = 160;
@@ -53,10 +53,31 @@ impl Core {
             if !mgba_sys::mCoreLoadFile(self.raw, c_path.as_ptr()) {
                 return Err(CoreError::RomLoadFailed);
             }
-            mgba_sys::mCoreAutoloadSave(self.raw);
         }
 
         self.loaded = true;
+
+        // Load the battery save next to the ROM (e.g. `game.gba` -> `game.sav`)
+        // and let the core write it back in place as the game plays.
+        if let Some(save_path) = save_path_for(path) {
+            self.load_save(&save_path)?;
+        }
+        Ok(())
+    }
+
+    /// Loads the battery save from `path` and enables writeback to it.
+    ///
+    /// libmgba memory-maps the file; dirty save data is flushed back to `path`
+    /// as the game plays (and on shutdown), so this also handles saving.
+    pub fn load_save(&mut self, path: &Path) -> Result<(), CoreError> {
+        let path_str = path.to_str().ok_or(CoreError::InvalidPath)?;
+        let c_path = CString::new(path_str).map_err(|_| CoreError::InvalidPath)?;
+
+        unsafe {
+            if !mgba_sys::wrapper_mCoreLoadSave(self.raw, c_path.as_ptr()) {
+                return Err(CoreError::SaveLoadFailed);
+            }
+        }
         Ok(())
     }
 
@@ -119,9 +140,18 @@ impl Drop for Core {
     }
 }
 
+/// Derives the save file path for a ROM from the ROM's own location, e.g.
+/// `/path/to/game.gba` becomes `/path/to/game.sav`.
+fn save_path_for(rom: &Path) -> Option<PathBuf> {
+    let mut path = rom.to_path_buf();
+    path.set_extension("sav");
+    Some(path)
+}
+
 #[derive(Debug)]
 pub enum CoreError {
     CreateFailed,
     InvalidPath,
     RomLoadFailed,
+    SaveLoadFailed,
 }
