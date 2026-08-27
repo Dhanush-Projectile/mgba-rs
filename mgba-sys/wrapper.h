@@ -19,4 +19,8 @@ struct mAudioBuffer* wrapper_mCoreGetAudioBuffer(struct mCore* core);
 unsigned wrapper_mCoreAudioSampleRate(const struct mCore* core);
 uint32_t wrapper_mCoreBusRead16(struct mCore* core, uint32_t address);
 void wrapper_mCoreSetOptionVolume(struct mCore* core, int volume);
+<<<<<<< HEAD
 void wrapper_mCoreSetSaveDirectory(struct mCore* core, const char* dir);
+=======
+bool wrapper_mCoreLoadSave(struct mCore* core, const char* path);
+>>>>>>> 6a5a64ef77be35a6adb8f6098c9c872f7a6005d5

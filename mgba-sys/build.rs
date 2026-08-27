@@ -166,7 +166,11 @@ fn main() {
         .allowlist_function("wrapper_mCoreAudioSampleRate")
         .allowlist_function("wrapper_mCoreBusRead16")
         .allowlist_function("wrapper_mCoreSetOptionVolume")
+<<<<<<< HEAD
         .allowlist_function("wrapper_mCoreSetSaveDirectory")
+=======
+        .allowlist_function("wrapper_mCoreLoadSave")
+>>>>>>> 6a5a64ef77be35a6adb8f6098c9c872f7a6005d5
         // Audio buffer functions
         .allowlist_function("mAudioBufferInit")
         .allowlist_function("mAudioBufferDeinit")
