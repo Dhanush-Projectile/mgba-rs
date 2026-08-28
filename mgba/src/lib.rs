@@ -93,7 +93,6 @@ impl Core {
             if !mgba_sys::mCoreLoadFile(self.raw, c_path.as_ptr()) {
                 return Err(CoreError::RomLoadFailed);
             }
-<<<<<<< HEAD
 
             // Keep battery saves (.sav) next to the ROM file, overriding any
             // savegamePath from an ambient mGBA config.
@@ -108,8 +107,7 @@ impl Core {
             }
 
             mgba_sys::mCoreAutoloadSave(self.raw);
-=======
->>>>>>> 6a5a64ef77be35a6adb8f6098c9c872f7a6005d5
+
         }
 
         self.loaded = true;

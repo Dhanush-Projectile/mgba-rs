@@ -41,7 +41,6 @@ void wrapper_mCoreSetOptionVolume(struct mCore* core, int volume) {
     core->opts.volume = volume;
 }
 
-<<<<<<< HEAD
 void wrapper_mCoreSetSaveDirectory(struct mCore* core, const char* dir) {
     struct VDir* d = VDirOpen(dir);
     if (!d && VDirCreate(dir)) {
@@ -54,8 +53,8 @@ void wrapper_mCoreSetSaveDirectory(struct mCore* core, const char* dir) {
         core->dirs.save->close(core->dirs.save);
     }
     core->dirs.save = d;
-=======
+}
+
 bool wrapper_mCoreLoadSave(struct mCore* core, const char* path) {
     return mCoreLoadSaveFile(core, path, false);
->>>>>>> 6a5a64ef77be35a6adb8f6098c9c872f7a6005d5
 }
