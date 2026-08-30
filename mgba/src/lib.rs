@@ -84,6 +84,20 @@ impl Core {
     }
 
     pub fn load_rom(&mut self, path: &Path) -> Result<(), CoreError> {
+        self.load_rom_with_save(path, save_path_for(path).as_deref())
+    }
+
+    /// Loads a ROM, optionally applying a battery save from `save_path`.
+    ///
+    /// When no `save_path` is given, the save next to the ROM
+    /// (`game.gba` -> `game.sav`) is used if present. libmgba memory-maps the
+    /// save file so dirty data is flushed back as the game plays; playing the
+    /// core both loads and writes back the save.
+    pub fn load_rom_with_save(
+        &mut self,
+        path: &Path,
+        save_path: Option<&Path>,
+    ) -> Result<(), CoreError> {
         let path_str = path.to_str().ok_or(CoreError::InvalidPath)?;
         let c_path = CString::new(path_str).map_err(|_| CoreError::InvalidPath)?;
 
@@ -106,17 +120,30 @@ impl Core {
                 }
             }
 
-            mgba_sys::mCoreAutoloadSave(self.raw);
-
+            // Auto-derived saves (next to the ROM) are only loaded if the file
+            // already exists on disk. This prevents libmgba's O_CREAT behaviour
+            // in mCoreLoadSaveFile from creating/blanking an adjacent .sav and
+            // then writing back to it, which could otherwise manufacture a
+            // stale, empty save file in the ROM's directory on every open.
+            let default_save = save_path.is_none().then(|| save_path_for(path)).flatten();
+            let owned_save = default_save.filter(|p| p.exists());
+            let effective_save = match save_path {
+                Some(s) => Some(s),
+                None => owned_save.as_deref(),
+            };
+            if let Some(save) = effective_save {
+                let save_str = save.to_str().ok_or(CoreError::InvalidPath)?;
+                let c_save = CString::new(save_str).map_err(|_| CoreError::InvalidPath)?;
+                let ok = mgba_sys::wrapper_mCoreLoadSave(self.raw, c_save.as_ptr());
+                if !ok {
+                    return Err(CoreError::SaveLoadFailed);
+                }
+            } else {
+                mgba_sys::mCoreAutoloadSave(self.raw);
+            }
         }
 
         self.loaded = true;
-
-        // Load the battery save next to the ROM (e.g. `game.gba` -> `game.sav`)
-        // and let the core write it back in place as the game plays.
-        if let Some(save_path) = save_path_for(path) {
-            self.load_save(&save_path)?;
-        }
         Ok(())
     }
 
